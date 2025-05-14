@@ -1,16 +1,11 @@
 import { Client, REST, Routes } from "discord.js";
 import { token } from "./config";
 import fs from 'node:fs/promises'
-
-
-import roll from "./commands/roll";
-import ping from "./commands/ping";
-import { Command, CommandModule } from "./types";
+import { CommandModule } from "./types";
+import path from "node:path";
 
 const rest = new REST({ version: '10' })
     .setToken(token)
-
-const commands: Command[] = [];
 
 function isCommandModule(value: unknown): value is CommandModule {
     if (value == null
@@ -23,15 +18,20 @@ function isCommandModule(value: unknown): value is CommandModule {
     return true;
 }
 
+const commandMap: Record<string, CommandModule> = {}
 async function loadCommands() {
-    console.log('Loading command modules...')
-    const fileNames = await fs.readdir('./commands')
+    console.group('Loading commands...')
+    const commandsDir = path.join(__dirname, '/commands')
+    const fileNames = await fs.readdir(commandsDir)
     await Promise.all(fileNames.map(importFile))
+    console.groupEnd()
 
     async function importFile(fileName: string) {
-        const file = await import(`./commands/${fileName}`)
-        if (!isCommandModule(file)) return;
-        commands.push(file.command)
+        const commandName = fileName.split('.')[0]
+        const { default: commandModule } = await import(path.join(commandsDir, fileName))
+        if (!isCommandModule(commandModule)) return;
+        console.log(fileName, 'loaded.')
+        commandMap[commandName] = commandModule;
     }
 }
 
@@ -48,17 +48,14 @@ function setupListeners(client: Client) {
         console.log('Command name:', interaction.commandName)
         console.log('Options:', interaction.options.data)
 
-        switch (interaction.commandName) {
-            case 'ping':
-                break;
-
-            case 'roll':
-                roll.execute(interaction)
-                break;
-
+        const commandName = interaction.commandName;
+        if (commandMap[commandName] == null) {
+            console.error('Invalid command name:', commandName);
+            return interaction.reply("Invalid command.");
         }
 
         console.groupEnd()
+        return commandMap[commandName].execute(interaction);
     })
 }
 
@@ -82,10 +79,13 @@ export async function setupCommands(client: Client) {
     try {
         await rest.put(
             Routes.applicationCommands(user.id),
-            { body: commands }
+            {
+                body: Object
+                    .values(commandMap)
+                    .map(({ command }) => command)
+            }
         )
         setupListeners(client)
-        console.log('Commands successfully set.')
         result = true;
     } catch (error) {
         console.error('Error occurred:', error)
