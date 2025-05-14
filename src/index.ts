@@ -1,6 +1,6 @@
-const { Client } = require('discord.js');
-const { setupClient } = require('./src/client');
-const { setupCommands } = require('./src/commands');
+import { Client } from "discord.js"
+import { setupClient } from "./client"
+import { setupCommands } from "./commands"
 
 async function main() {
     console.group('Starting application')

@@ -1,9 +1,11 @@
 {
   "name": "my-app",
   "version": "0.0.1",
-  "main": "index.js",
+  "main": "dist/index.js",
+  "type": "module",
   "scripts": {
-    "start": "nodemon index.js"
+    "build": "tsc",
+    "start": "nodemon dist/index.js"
   },
   "author": "",
   "license": "ISC",
@@ -12,5 +14,8 @@
     "discord.js": "^14.16.3",
     "dotenv": "^16.4.5",
     "nodemon": "^3.1.7"
+  },
+  "devDependencies": {
+    "typescript": "^5.8.3"
   }
 }
