@@ -8,12 +8,12 @@ import { token } from "./config";
 export async function setupClient(client: Client) {
     console.group('Setting up client...')
 
-    const user = client.user;
-    if (user == null) {
-        throw new Error('Client.user is null.');
-    }
-
     client.on('ready', () => {
+        const user = client.user;
+        if (user == null) {
+            throw new Error('Client.user is null.');
+        }
+
         console.log(`Logged in as ${user.tag}!`)
         console.log(`Client user id: ${user.id}`)
     });
