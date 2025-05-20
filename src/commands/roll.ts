@@ -1,7 +1,13 @@
 import { ChatInputCommandInteraction, SlashCommandBuilder } from "discord.js";
 import { CommandModule } from "../types";
+import Monad from "../models/monad";
 
-const dice = [4, 6, 8, 10, 12, 20, 100]
+type RollType = 'Disadvantage' | 'Advantage' | 'Single'
+const rollTypeOptions: Readonly<RollType[]> = [
+    'Disadvantage', 'Advantage'
+]
+
+const dice = [4, 6, 8, 10, 12, 20, 100] as const
 const defaultDie = 20;
 
 const command = new SlashCommandBuilder()
@@ -24,10 +30,9 @@ const command = new SlashCommandBuilder()
     .addNumberOption(option =>
         option.setName('roll-with')
             .setDescription('Select if a roll is made with advantage or disadvantage. Ignores amount option if set.')
-            .setChoices([
-                { name: 'Advantage', value: 1 },
-                { name: 'Disadvantage', value: 0 },
-            ])
+            .setChoices(
+                rollTypeOptions.map((type, index) => ({ name: type, value: index }))
+            )
     )
     .addStringOption(option =>
         option.setName('description')
@@ -36,62 +41,69 @@ const command = new SlashCommandBuilder()
     )
 
 
-function roll(die: number) {
-    return Math.ceil(Math.random() * die)
+function roll(die: number, type?: RollType | null): number {
+    switch (type) {
+        case 'Advantage': return Math.max(roll(die), roll(die))
+        case 'Disadvantage': return Math.min(roll(die), roll(die))
+        case 'Single':
+        default: return Math.ceil(Math.random() * die)
+    }
 }
 
-/**
- *
- * @param interaction
- */
+function format(str: string) {
+    return str
+        .split('\n')
+        .map(line => line.replace(/^(\s*)/, ''))
+        .join('\n');
+}
+
 function execute(interaction: ChatInputCommandInteraction) {
     console.group('Rolling dice...')
 
-    const die = interaction.options.getNumber('dice') ?? defaultDie,
-        amount = interaction.options.getNumber('amount'),
-        advantage = interaction.options.getNumber('roll-with'),
-        description = interaction.options.getString('description')
+    const die = Monad
+        .of(interaction.options.getNumber('dice'))
+        .reduce(defaultDie);
 
-    console.log('Selected die:', die)
-    console.log('Amount:', amount)
-    console.log('Roll with:', advantage)
-    console.log('Description:', description)
+    const amount = Monad
+        .of(interaction.options.getNumber('amount'))
+        .reduce(1);
 
-    if (advantage != null) {
-        const results = [roll(die), roll(die)]
-        if (advantage) {
-            console.log('Rolling with advantage.')
-            return reply(`d${die} with advantage`, `${Math.max(...results)} (${results})`)
-        }
-        else {
-            console.log('Rolling with disadvantage')
-            return reply(`d${die} with disadvantage`, `${Math.min(...results)} (${results})`)
-        }
+    const type = Monad
+        .of(interaction.options.getNumber('roll-with'))
+        .map((value) => rollTypeOptions[value])
+        .reduce('Single')
+
+    let reply = Monad
+        .of(interaction.options.getString('description'))
+        .map((value) => `${value} - Rolled D${die}`)
+        .reduce(`Rolled D${die}`)
+
+    console.log(format(
+        `Selected die: ${die}
+        Amount: ${amount}
+        Roll with: ${type}`
+    ))
+
+    let result = 0
+    for (let i = 0; i < amount; i++) {
+        result += roll(die, type)
     }
 
-    if (amount) {
-        let rollResults = Array<number>(amount)
-        for (let i = 0; i < amount; i++) {
-            rollResults[i] = roll(die)
-        }
+    if (amount > 1) reply += `x${amount}`
 
-        console.log('Roll results:', rollResults)
-        return reply(`${amount}d${die}`, `${rollResults.reduce((prev, curr) => prev + curr)} (${rollResults})`)
-
+    switch (type) {
+        case 'Advantage':
+            reply += ' with advantage'
+            break;
+        case 'Disadvantage':
+            reply += ' with disadvantage'
+            break;
     }
 
-    return reply('d' + die, roll(die))
-
-    function reply(rolled: string, result: number | string) {
-        console.log('Result:', result)
-        console.groupEnd()
-        if (description) {
-            interaction.reply(description + ` Rolled ${rolled}, result: ${result}`)
-            return;
-        }
-
-        interaction.reply(`Rolled ${rolled}, result: ${result}`)
-    }
+    reply += `, Result: ${result}`
+    console.log('Reply:', reply);
+    console.groupEnd();
+    return interaction.reply(reply)
 }
 
 export default {
