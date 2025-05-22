@@ -18,20 +18,22 @@ function isCommandModule(value: unknown): value is CommandModule {
     return true;
 }
 
-const commandMap: Record<string, CommandModule> = {}
 async function loadCommands() {
     console.group('Loading commands...')
+    const commands: Record<string, CommandModule> = {}
     const commandsDir = path.join(__dirname, '/commands')
     const fileNames = await fs.readdir(commandsDir)
+
     await Promise.all(fileNames.map(importFile))
     console.groupEnd()
+    return commands
 
     async function importFile(fileName: string) {
         const commandName = fileName.split('.')[0]
         const { default: commandModule } = await import(path.join(commandsDir, fileName))
         if (!isCommandModule(commandModule)) return;
         console.log(fileName, 'loaded.')
-        commandMap[commandName] = commandModule;
+        commands[commandName] = commandModule;
     }
 }
 
@@ -39,7 +41,7 @@ async function loadCommands() {
  * Sets up listeners for each command.
  * @param client Discord client object.
  */
-function setupListeners(client: Client) {
+function setupListeners(client: Client, commands: Record<string, CommandModule>) {
     client.on('interactionCreate', interaction => {
         if (!interaction.isChatInputCommand()) return;
 
@@ -49,13 +51,13 @@ function setupListeners(client: Client) {
         console.log('Options:', interaction.options.data)
 
         const commandName = interaction.commandName;
-        if (commandMap[commandName] == null) {
+        if (commands[commandName] == null) {
             console.error('Invalid command name:', commandName);
             return interaction.reply("Invalid command.");
         }
 
         console.groupEnd()
-        return commandMap[commandName].execute(interaction);
+        return commands[commandName].execute(interaction);
     })
 }
 
@@ -68,12 +70,12 @@ function setupListeners(client: Client) {
 export async function setupCommands(client: Client) {
     console.group('Setting application commands...')
 
-    await loadCommands();
-
     const user = client.user;
     if (user == null) {
         throw new Error('Client.user is null');
     }
+
+    const commands = await loadCommands();
 
     let result = false;
     try {
@@ -81,11 +83,11 @@ export async function setupCommands(client: Client) {
             Routes.applicationCommands(user.id),
             {
                 body: Object
-                    .values(commandMap)
+                    .values(commands)
                     .map(({ command }) => command)
             }
         )
-        setupListeners(client)
+        setupListeners(client, commands)
         result = true;
     } catch (error) {
         console.error('Error occurred:', error)
