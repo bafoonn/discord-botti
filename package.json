@@ -1,5 +1,10 @@
 {
-  "name": "my-app",
+  "name": "discord-botti",
+  "description": "A Node.js Discord bot written in TypeScript.",
+  "author": {
+    "name": "Tuomas Antikainen",
+    "email": "tuomas.antikainen@outlook.com"
+  },
   "version": "0.0.1",
   "main": "dist/index.js",
   "type": "commonjs",
@@ -8,9 +13,7 @@
     "start": "node dist/index.js",
     "dev": "nodemon"
   },
-  "author": "",
   "license": "ISC",
-  "description": "",
   "dependencies": {
     "discord.js": "^14.16.3",
     "dotenv": "^16.4.5",
