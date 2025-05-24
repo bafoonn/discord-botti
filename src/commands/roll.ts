@@ -1,6 +1,6 @@
 import { ChatInputCommandInteraction, SlashCommandBuilder } from "discord.js";
 import { CommandModule } from "../types";
-import Monad from "../models/monad";
+import Option from "../models/option";
 
 type RollType = 'Disadvantage' | 'Advantage' | 'Single'
 const rollTypeOptions: Readonly<RollType[]> = [
@@ -60,20 +60,20 @@ function format(str: string) {
 function execute(interaction: ChatInputCommandInteraction) {
     console.group('Rolling dice...')
 
-    const die = Monad
+    const die = Option
         .of(interaction.options.getNumber('dice'))
         .reduce(defaultDie);
 
-    const amount = Monad
+    const amount = Option
         .of(interaction.options.getNumber('amount'))
         .reduce(1);
 
-    const type = Monad
+    const type = Option
         .of(interaction.options.getNumber('roll-with'))
         .map((value) => rollTypeOptions[value])
         .reduce('Single')
 
-    let reply = Monad
+    let reply = Option
         .of(interaction.options.getString('description'))
         .map((value) => `${value} - Rolled D${die}`)
         .reduce(`Rolled D${die}`)

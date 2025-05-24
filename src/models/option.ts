@@ -1,7 +1,7 @@
 type Nothing = undefined | null
 type Reduce<TType> = Exclude<TType, Nothing>
 
-export default class Monad<TType> {
+export default class Option<TType> {
     private _value?: TType;
 
     constructor(value?: TType) {
@@ -9,11 +9,11 @@ export default class Monad<TType> {
     }
 
     public static of<TValue>(value: TValue) {
-        return new Monad(value);
+        return new Option(value);
     }
 
     public static nothing() {
-        return new Monad<Nothing>();
+        return new Option<Nothing>();
     }
 
     /**
@@ -21,10 +21,10 @@ export default class Monad<TType> {
      * @param callback Callback applied to the inner value.
      * @returns If the inner value is null, an empty Option object is returned. Otherwise returns a new Option object with the callback's result as it's value.
      */
-    public map<TResult>(callback: (value: NonNullable<TType>) => TResult): Monad<TResult | Nothing> {
+    public map<TResult>(callback: (value: NonNullable<TType>) => TResult): Option<TResult | Nothing> {
         return this._value != null
-            ? Monad.of(callback(this._value))
-            : Monad.nothing()
+            ? Option.of(callback(this._value))
+            : Option.nothing()
     }
 
     /**
