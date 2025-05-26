@@ -1,8 +1,8 @@
 import { Client, REST, Routes } from "discord.js";
 import { token } from "./config";
-import fs from 'node:fs/promises'
-import { CommandModule } from "./types";
+import fs from 'node:fs/promises';
 import path from "node:path";
+import { CommandModule } from "./types";
 
 const rest = new REST({ version: '10' })
     .setToken(token)
@@ -53,11 +53,12 @@ function setupListeners(client: Client, commands: Record<string, CommandModule>)
         const commandName = interaction.commandName;
         if (commands[commandName] == null) {
             console.error('Invalid command name:', commandName);
-            return interaction.reply("Invalid command.");
+            interaction.reply("Invalid command.");
+            return;
         }
 
         console.groupEnd()
-        return commands[commandName].execute(interaction);
+        commands[commandName].execute(interaction);
     })
 }
 
@@ -65,7 +66,7 @@ function setupListeners(client: Client, commands: Record<string, CommandModule>)
  * Puts all defined commands using discord.js REST api.
  * Sets up listeners for the commands if definition were successfully put.
  * @param client Discord client object.
- * @returns {Promise<boolean>} Whether or not the setup was successful.
+ * @returns Whether or not the setup was successful.
  */
 export async function setupCommands(client: Client) {
     console.group('Setting application commands...')

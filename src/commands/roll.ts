@@ -89,7 +89,7 @@ function execute(interaction: ChatInputCommandInteraction) {
         result += roll(die, type)
     }
 
-    if (amount > 1) reply += `x${amount}`
+    if (amount > 1) reply += ` ${amount} times`
 
     switch (type) {
         case 'Advantage':
